@@ -25,7 +25,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ips = await getAllIPs();
       res.json(ips);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching all IPs:", error);
       res.status(500).json({ message: "Failed to fetch all IPs" });
     }
@@ -36,7 +36,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const services = await getServices();
       res.json(services);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching services:", error);
       res.status(500).json({ message: "Failed to fetch services" });
     }
@@ -64,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(409).json({ message: "Service already exists" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error adding service:", error);
       res.status(500).json({ message: "Failed to add service" });
     }
@@ -91,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           await fs.unlink(classifiedFile);
           console.log(`Deleted classified file: ${classifiedFile}`);
-        } catch (error) {
+        } catch (error: any) {
           if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
             throw error; // Ignore if file doesn't exist
           }
@@ -106,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(404).json({ message: "Service not found" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting service:", error);
       res.status(500).json({ message: "Failed to delete service" });
     }
@@ -117,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ips = await getClassifiedIPs();
       res.json(ips);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching classified IPs:", error);
       res.status(500).json({ message: "Failed to fetch classified IPs" });
     }
@@ -128,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ips = await getEnrichedIPs();
       res.json(ips);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching enriched IPs:", error);
       res.status(500).json({ message: "Failed to fetch enriched IPs" });
     }
@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         res.status(404).json({ message: "No enriched data available" });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching latest enriched IP:", error);
       res.status(500).json({ message: "Failed to fetch latest enriched IP" });
     }
@@ -154,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const ips = await getCrackedIPs();
       res.json(ips);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching cracked IPs:", error);
       res.status(500).json({ message: "Failed to fetch cracked IPs" });
     }

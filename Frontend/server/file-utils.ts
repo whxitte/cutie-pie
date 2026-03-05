@@ -122,7 +122,7 @@ export async function getAllIPs(): Promise<IP[]> {
 
         console.log('getAllIPs returning:', results.slice(-5)); // Log last 5 IPs
         return results;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading all.txt:', error);
         return [];
     }
@@ -147,7 +147,7 @@ export async function getServices(): Promise<Service[]> {
                 service: service || `Port-${port.trim()}`
             };
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading ports.conf:', error);
         return [];
     }
@@ -170,7 +170,7 @@ export async function addService(port: string, service: string): Promise<boolean
         );
 
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error adding service:', error);
         return false;
     }
@@ -207,12 +207,12 @@ export async function deleteService(port: string): Promise<boolean> {
         try {
             await fs.promises.unlink(classifiedFile);
             console.log(`Deleted classified file: ${classifiedFile}`);
-        } catch (error) {
+        } catch (error: any) {
             if (error.code !== 'ENOENT') throw error; // Ignore if file doesn't exist
         }
 
         return true;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error deleting service:', error);
         return false;
     }
@@ -270,7 +270,7 @@ export async function getClassifiedIPs(): Promise<Record<string, IP[]>> {
         }
 
         return result;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading classified IPs:', error);
         return {};
     }
@@ -339,7 +339,7 @@ export async function getEnrichedIPs(fromLine?: number): Promise<EnrichedIP[]> {
             parser.write(linesToParse.join('\n'));
             parser.end();
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading enriched.csv:', error);
         return [];
     }
@@ -409,7 +409,7 @@ export async function getLatestEnrichedIP(): Promise<EnrichedIP | null> {
         });
 
         return records[0] || null;
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading latest enriched IP:', error);
         return null;
     }
@@ -475,7 +475,7 @@ export async function getCrackedIPs(fromLine?: number): Promise<CrackedIP[]> {
             parser.write(linesToParse.join('\n'));
             parser.end();
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error reading cracked.csv:', error);
         return [];
     }
