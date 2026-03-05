@@ -30,10 +30,10 @@ print_separator() {
     echo "===================================="
 }
 
-# export KALI_SCANNER=/root/Cutie-Pie
-log_info "KALI_SCANNER: $KALI_SCANNER"
-
-BASE_DIR="$HOME/cutie-pie/Backend"
+# Auto-detect the Backend directory from this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="${SCANNER_BASE:-$(dirname "$SCRIPT_DIR")}"
+log_info "BASE_DIR: $BASE_DIR"
 LOG_DIR="$BASE_DIR/logs/scanner"
 CONFIG_DIR="$BASE_DIR/config"
 EXCLUDE_FILE="$CONFIG_DIR/masscan_exclude.conf"
@@ -43,8 +43,14 @@ OUTPUT_DIR="$LOG_DIR/classified"
 ALL_FILE="$LOG_DIR/all.txt"
 PID_FILE="$CONFIG_DIR/masscan.pid"
 
-# Create output directory
+# Create output directories and ensure they are writable by the frontend
 mkdir -p "$OUTPUT_DIR"
+mkdir -p "$LOG_DIR/enriched"
+mkdir -p "$LOG_DIR/cracked"
+# If running as root (sudo), make sure the user can write to these directories
+if [ "$(id -u)" -eq 0 ]; then
+    chmod -R 777 "$LOG_DIR"
+fi
 
 # Initialize PORTS globally
 PORTS=""
@@ -129,9 +135,9 @@ while true; do
         create_classified_files
         cleanup_orphaned_files
         log_debug "Running masscan with ports: $PORTS"
-        # Run masscan and process output
+        # Run masscan and process output (removed 2>/dev/null to see errors)
         {
-            stdbuf -o0 masscan -p"$PORTS" 0.0.0.0/0 --excludefile "$EXCLUDE_FILE" --rate=1000 -oG - 2>/dev/null &
+            stdbuf -o0 masscan -p"$PORTS" 0.0.0.0/0 --excludefile "$EXCLUDE_FILE" --rate=1000 -oG - &
             masscan_pid=$!
             echo "$masscan_pid" > "$PID_FILE"
             wait $masscan_pid

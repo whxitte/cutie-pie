@@ -19,3 +19,11 @@ export interface EnrichedIP {
   timestamp?: string; // Added to match client interface
   id?: string; // Added to match client interface
 }
+
+export interface CrackedIP {
+  ip: string;
+  port: string;
+  username: string;
+  password: string;
+  timestamp: string;
+}

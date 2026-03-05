@@ -3,15 +3,16 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { ensureDirectoriesExist } from "./file-utils";
 import os from "os";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Check for environment variables
-if (process.env.KALI_SCANNER) {
-  log(`Using Kali Linux mode with base path: ${process.env.KALI_SCANNER}`);
-  process.env.KALI_PATHS = 'true';
-} else {
-  log('Using Development mode with base path: ./data');
-  process.env.KALI_PATHS = 'false';
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Resolve scanner base path: env var > sibling Backend directory
+const scannerBase = process.env.SCANNER_BASE || path.resolve(__dirname, '..', '..', 'Backend');
+process.env.SCANNER_BASE = scannerBase;
+log(`Scanner base path: ${scannerBase}`);
 
 const app = express();
 app.use(express.json());
@@ -50,7 +51,7 @@ app.use((req, res, next) => {
 (async () => {
   // Ensure all necessary directories exist before starting
   await ensureDirectoriesExist();
-  
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

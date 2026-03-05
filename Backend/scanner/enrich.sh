@@ -1,16 +1,31 @@
 #!/bin/bash
 # Enrichment Module for IPs from Masscan - One-by-One Processing with Detailed Progress
 
-BASE_DIR="$HOME/cutie-pie/Backend"
+# Auto-detect the Backend directory from this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="${SCANNER_BASE:-$(dirname "$SCRIPT_DIR")}"
 LOG_DIR="$BASE_DIR/logs/scanner"
 ALL_FILE="$LOG_DIR/all.txt"
 ENRICHED_DIR="$LOG_DIR/enriched"
+ENPROCESSED_IPS="$LOG_DIR/processed_ips.txt"
+CRACKED_DIR="$LOG_DIR/cracked"
+
+# Ensure the cracked directory exists and is writable
+mkdir -p "$CRACKED_DIR"
+if [ "$(id -u)" -eq 0 ]; then
+    chmod -R 777 "$CRACKED_DIR"
+fi
 ENRICHED_FILE="$ENRICHED_DIR/enriched.csv"
 LOCK_FILE="$ENRICHED_DIR/enriched.lock"
 
 # Create directories and files
 mkdir -p "$ENRICHED_DIR"
 touch "$ENRICHED_FILE" "$LOCK_FILE"
+
+# If running as root (sudo), make sure the user can write to these files
+if [ "$(id -u)" -eq 0 ]; then
+    chmod -R 777 "$ENRICHED_DIR"
+fi
 
 # Write CSV header if the file is empty
 if [[ ! -s "$ENRICHED_FILE" ]]; then

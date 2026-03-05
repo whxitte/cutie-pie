@@ -1,13 +1,22 @@
 #!/bin/bash
 
 # Paths
-BASE_DIR="$HOME/cutie-pie/Backend"
+# Auto-detect the Backend directory from this script's location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BASE_DIR="${SCANNER_BASE:-$(dirname "$SCRIPT_DIR")}"
 LOGS_DIR="$BASE_DIR/logs/scanner"
 SSH_FILE="$LOGS_DIR/classified/ssh.txt"
 CRACKED_FILE="$LOGS_DIR/cracked/cracked.csv"
 USER_LIST="$BASE_DIR/config/users.conf"
 PASS_LIST="$BASE_DIR/config/pass.conf"
 PROCESSED_IPS="$LOGS_DIR/processed_ips.txt"
+CRACKED_DIR="$LOGS_DIR/cracked"
+
+# Ensure the cracked directory exists and is writable
+mkdir -p "$CRACKED_DIR"
+if [ "$(id -u)" -eq 0 ]; then
+    chmod 777 "$CRACKED_DIR"
+fi
 
 # Ensure the cracked.csv file exists with headers
 if [ ! -f "$CRACKED_FILE" ]; then

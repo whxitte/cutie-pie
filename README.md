@@ -12,9 +12,9 @@
 
 ## Prerequisites
 
-- **Operating System**: Tested on Kali Linux (root access needed).
+- **Operating System**: Any Linux distribution (root access needed for network scanning).
 - **Dependencies**:
-  - `masscan` (install with `sudo apt install masscan`).
+  - `masscan`
   - `geoiplookup`
   - `dig`
   - `whois`
@@ -38,28 +38,33 @@
    cd cutie-pie
    ```
 
-2. Install `masscan` if not already present:
+2. Install system dependencies if not already present:
 
    ```bash
    sudo apt update
-   sudo apt install masscan
+   sudo apt install masscan geoip-bin dnsutils whois curl hydra util-linux coreutils
    ```
 
-3. Make the script executable:
+3. Install frontend dependencies:
 
    ```bash
-   chmod +x masscan_live.sh
+   cd Frontend
+   npm install
+   ```
+
+4. Make the scanner scripts executable:
+
+   ```bash
+   chmod +x Backend/scanner/*.sh Backend/start.sh
    ```
 
 ## Configuration
 
-- **Set Live Environment**:
-  - `export KALI_SCANNER=/root/cutie-pie/Backend`
-
-- **Directory Structure**:
-  - `/root/cutie-pie/Backend`: Base directory (adjust `KALI_SCANNER` in the script if needed).
-  - `/root/cutie-pie/Backend/config/`: Contains `ports.conf` and `masscan_exclude.conf`.
-  - `/root/cutie-pie/Backend/logs/scanner/`: Stores output files (e.g., `classified/http.txt`).
+- **Directory Structure** (auto-detected from the project root):
+  - `Backend/config/`: Contains `ports.conf` and `masscan_exclude.conf`.
+  - `Backend/logs/scanner/`: Stores output files (e.g., `classified/http.txt`).
+- **Environment Variable** (optional):
+  - `export SCANNER_BASE=/path/to/cutie-pie/Backend` — Override the auto-detected Backend path.
 - **ports.conf**: Define ports and services to scan. Format: `port # service_name` (e.g., `80 # http` or `8080 # http-extra`). Comments start with `#`.
 - **masscan_exclude.conf**: Optional file to exclude IP ranges (format per `masscan` docs).
 
@@ -74,15 +79,22 @@
 
 ## Usage
 
-1. Start the scanner:
+1. Start the frontend server:
 
    ```bash
-   ./masscan_live.sh
+   cd Frontend
+   npm run dev
    ```
 
-2. Modify `ports.conf` to add/remove ports (e.g., add `443 # https`).
+2. Start the scanner (in a separate terminal, as root):
 
-3. Watch the console for real-time updates and check output files in `/root/cutie-pie/Backendlogs/scanner/classified/`.
+   ```bash
+   sudo bash Backend/scanner/masscan_live.sh
+   ```
+
+3. Modify `ports.conf` to add/remove ports (e.g., add `443 # https`).
+
+4. Watch the console for real-time updates and check output files in `Backend/logs/scanner/classified/`.
 
 ### Output Files
 
@@ -97,7 +109,7 @@
 ## Example Output
 
 ```
-[INFO] KALI_SCANNER: /root/Cutie-Pie
+[INFO] BASE_DIR: /home/user/cutie-pie/Backend
 ====================================
 [INFO] Starting live internet scan at Tue Apr 29 10:19:08 AM EDT 2025 with ports: 80,21
 [DEBUG] Running masscan with ports: 80,21
@@ -105,7 +117,7 @@
 Timestamp: 1745936391 Host: 54.188.126.198 () Ports: 80/open/tcp//http//
 [DEBUG] Processing IP: ip=54.188.126.198, port=80, timestamp=2025-04-29T14:19:52Z
 ====================================
-[CHANGE] Change detected in /root/cutie-pie/Backend/config/ports.conf at Tue Apr 29 10:19:48 AM EDT 2025 - Waiting to process...
+[CHANGE] Change detected in Backend/config/ports.conf at Tue Apr 29 10:19:48 AM EDT 2025 - Waiting to process...
 ====================================
 [INFO] Scan completed at Tue Apr 29 10:19:51 AM EDT 2025 - Restarting...
 ```
@@ -119,7 +131,7 @@ Timestamp: 1745936391 Host: 54.188.126.198 () Ports: 80/open/tcp//http//
 
 ## Contributing
 
-Feel free to fork this repo, mahn! Submit pull requests or issues for new features (e.g., rate limiting, additional services) or bug fixes. Hell yeah—let’s make it better together!
+Feel free to fork this repo, mahn! Submit pull requests or issues for new features (e.g., rate limiting, additional services) or bug fixes. Hell yeah—let's make it better together!
 
 ## License
 
@@ -129,3 +141,8 @@ MIT License—use it, tweak it, share it! Check the `LICENSE` file for details.
 
 - Built with love using `masscan` and Bash wizardry.
 - Inspired by the need for a dynamic, real-time scanning tool.
+
+### Test Command
+```bash
+bash -n Backend/scanner/masscan_live.sh && echo "masscan_live.sh: OK" && bash -n Backend/scanner/enrich.sh && echo "enrich.sh: OK" && bash -n Backend/scanner/crack.sh && echo "crack.sh: OK" && bash -n Backend/start.sh && echo "start.sh: OK"
+```

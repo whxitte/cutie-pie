@@ -1,23 +1,21 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
+import { fileURLToPath } from 'url';
 import { IP, Service, EnrichedIP, CrackedIP } from './models';
 import { parse } from 'csv-parse';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const readFile = promisify(fs.readFile);
 const writeFile = promisify(fs.writeFile);
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
 
-// Function to determine if we're in Kali mode
-const getIsKali = () => process.env.KALI_PATHS === 'true';
-
-// Function to get the base path
+// Function to get the base path (Backend directory)
 const getBasePath = () => {
-    const isKali = getIsKali();
-    const kaliBasePath = process.env.KALI_SCANNER || '/opt/scanner';
-    const replitBasePath = './data';
-    return isKali ? kaliBasePath : replitBasePath;
+    return process.env.SCANNER_BASE || path.resolve(__dirname, '..', '..', 'Backend');
 };
 
 // Function to get the scanner path
@@ -32,11 +30,10 @@ const getConfigPath = () => {
     return path.join(basePath, 'config');
 };
 
-// Log the paths being used (will be called after index.ts sets KALI_PATHS)
+// Log the paths being used
 const logPaths = () => {
-    console.log(`Using ${getIsKali() ? 'Kali Linux' : 'Development'} mode with base path: ${getBasePath()}`);
+    console.log(`Scanner base path: ${getBasePath()}`);
     console.log('Using paths:', {
-        isKali: getIsKali(),
         BASE_PATH: getBasePath(),
         SCANNER_PATH: getScannerPath(),
         CONFIG_PATH: getConfigPath()
@@ -45,87 +42,41 @@ const logPaths = () => {
 
 // Ensure all necessary directories exist
 export async function ensureDirectoriesExist() {
-    const isKali = getIsKali();
-    const replitScannerPath = path.join('./data', 'scanner');
-    const replitConfigPath = path.join('./data', 'config');
+    const scannerPath = getScannerPath();
+    const configPath = getConfigPath();
 
-    // Skip directory creation in Kali mode - we assume the directories already exist
-    if (!isKali) {
-        const dirs = [
-            path.join(replitScannerPath, 'classified'),
-            path.join(replitScannerPath, 'enriched'),
-            path.join(replitScannerPath, 'cracked'), // Add cracked directory
-            path.join(replitConfigPath)
-        ];
+    const dirs = [
+        path.join(scannerPath, 'classified'),
+        path.join(scannerPath, 'enriched'),
+        path.join(scannerPath, 'cracked'),
+        configPath
+    ];
 
-        for (const dir of dirs) {
-            if (!fs.existsSync(dir)) {
+    for (const dir of dirs) {
+        if (!fs.existsSync(dir)) {
+            try {
                 fs.mkdirSync(dir, { recursive: true });
+            } catch (err: any) {
+                if (err.code === 'EACCES') {
+                    console.warn(`Warning: Permission denied creating ${dir} (may be owned by root from scanner). Skipping.`);
+                } else {
+                    throw err;
+                }
             }
         }
+    }
 
-        // Ensure ports.conf exists
-        const portsConfPath = path.join(replitConfigPath, 'ports.conf');
-        if (!fs.existsSync(portsConfPath)) {
-            const defaultPorts = [
-                '22 # SSH',
-                '80 # HTTP',
-                '443 # HTTPS',
-                '21 # FTP',
-                '3389 # RDP'
-            ].join('\n');
-            await writeFile(portsConfPath, defaultPorts);
-        }
+    // Log the presence of critical files
+    const pathsToCheck = [
+        { path: path.join(configPath, 'ports.conf'), name: 'ports.conf' },
+        { path: path.join(scannerPath, 'all.txt'), name: 'all.txt' },
+        { path: path.join(scannerPath, 'classified'), name: 'classified directory' },
+        { path: path.join(scannerPath, 'enriched', 'enriched.csv'), name: 'enriched.csv' },
+        { path: path.join(scannerPath, 'cracked', 'cracked.csv'), name: 'cracked.csv' }
+    ];
 
-        // Ensure all.txt exists with sample data
-        const allTxtPath = path.join(replitScannerPath, 'all.txt');
-        if (!fs.existsSync(allTxtPath)) {
-            const sampleData = [
-                '10.0.0.55:27017:2025-04-02T10:45:22Z',
-                '192.168.1.100:80:2025-04-02T10:46:10Z',
-                '172.16.0.40:21:2025-04-02T10:47:05Z',
-                '192.168.5.200:3389:2025-04-02T10:48:30Z',
-                '10.10.10.10:22:2025-04-02T10:49:15Z'
-            ].join('\n');
-            await writeFile(allTxtPath, sampleData);
-        }
-
-        // Ensure classified directory has data
-        const classifiedDir = path.join(replitScannerPath, 'classified');
-        const ftpFilePath = path.join(classifiedDir, 'ftp.txt');
-        if (!fs.existsSync(ftpFilePath)) {
-            const ftpData = [
-                '172.16.0.40:21:2025-04-02T10:47:05Z'
-            ].join('\n');
-            await writeFile(ftpFilePath, ftpData);
-        }
-
-        // Ensure enriched.csv exists
-        const enrichedCsvPath = path.join(replitScannerPath, 'enriched', 'enriched.csv');
-        if (!fs.existsSync(enrichedCsvPath)) {
-            const sampleEnriched = 'ip,port,hostname,organization,country,banner\n"35.182.91.45","22","ec2-35-182-91-45.ca-central-1.compute.amazonaws.com","Amazon Technologies Inc.","Canada","SSH-2.0-OpenSSH_7.4"';
-            await writeFile(enrichedCsvPath, sampleEnriched);
-        }
-
-        // Ensure cracked.csv exists
-        const crackedCsvPath = path.join(replitScannerPath, 'cracked', 'cracked.csv');
-        if (!fs.existsSync(crackedCsvPath)) {
-            const sampleCracked = 'ip,port,username,password,timestamp\n"93.223.71.5","22","admin","password123","2025-04-04T11:53:04Z"';
-            await writeFile(crackedCsvPath, sampleCracked);
-        }
-    } else {
-        // Just check if critical files exist and log their presence
-        const pathsToCheck = [
-            { path: path.join(getConfigPath(), 'ports.conf'), name: 'ports.conf' },
-            { path: path.join(getScannerPath(), 'all.txt'), name: 'all.txt' },
-            { path: path.join(getScannerPath(), 'classified'), name: 'classified directory' },
-            { path: path.join(getScannerPath(), 'enriched', 'enriched.csv'), name: 'enriched.csv' },
-            { path: path.join(getScannerPath(), 'cracked', 'cracked.csv'), name: 'cracked.csv' } // Add cracked.csv
-        ];
-
-        for (const item of pathsToCheck) {
-            console.log(`Checking if ${item.name} exists at ${item.path}: ${fs.existsSync(item.path)}`);
-        }
+    for (const item of pathsToCheck) {
+        console.log(`Checking if ${item.name} exists at ${item.path}: ${fs.existsSync(item.path)}`);
     }
 }
 
@@ -530,5 +481,5 @@ export async function getCrackedIPs(fromLine?: number): Promise<CrackedIP[]> {
     }
 }
 
-// Call logPaths after index.ts has set KALI_PATHS
+// Call logPaths after index.ts has set SCANNER_BASE
 setTimeout(logPaths, 0);
